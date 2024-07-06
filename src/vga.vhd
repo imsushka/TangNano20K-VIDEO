@@ -388,7 +388,7 @@ PORT MAP(CLK	=> NOT(HS1(3)),
 	 SClr	=> RESET_n,
 	 Q	=> HS);
 
-b2v_CompHV : comp1024x768a
+b2v_CompHV : comp1024x768
 PORT MAP(CLK	=> CLK,
 	 RST	=> RESET_n,
 	 H	=> COLs(11 DOWNTO 0),
@@ -602,15 +602,15 @@ S101 <=    (COLss(2)) AND NOT(COLss(1)) AND    (COLss(0));
 S110 <=    (COLss(2)) AND    (COLss(1)) AND NOT(COLss(0));
 S111 <=    (COLss(2)) AND    (COLss(1)) AND    (COLss(0));
 
-S000 <= NOT(COLs(2)) AND NOT(COLs(1)) AND NOT(COLs(0));
-S0   <= NOT(COLs(2)) AND NOT(COLs(1));-- AND NOT(COLs(0));
-S1   <= NOT(COLs(2)) AND NOT(COLs(1)) AND     COLs(0) ;
-S2   <= NOT(COLs(2)) AND     COLs(1);--  AND NOT(COLs(0));
-S3   <= NOT(COLs(2)) AND     COLs(1)  AND     COLs(0) ;
-S4   <=     COLs(2)  AND NOT(COLs(1));-- AND NOT(COLs(0));
-S5   <=     COLs(2)  AND NOT(COLs(1)) AND     COLs(0) ;
-S6   <=     COLs(2)  AND     COLs(1);--  AND NOT(COLs(0));
-S7   <=     COLs(2)  AND     COLs(1)  AND     COLs(0);-- AND COLss(2) AND COLss(1);
+S000 <= NOT(COLss(2)) AND NOT(COLss(1)) AND NOT(COLss(0));
+S0   <= NOT(COLss(2)) AND NOT(COLss(1));-- AND NOT(COLs(0));
+S1   <= NOT(COLss(2)) AND NOT(COLss(1)) AND     COLss(0) ;
+S2   <= NOT(COLss(2)) AND     COLss(1);--  AND NOT(COLs(0));
+S3   <= NOT(COLss(2)) AND     COLss(1)  AND     COLss(0) ;
+S4   <=     COLss(2)  AND NOT(COLss(1));-- AND NOT(COLs(0));
+S5   <=     COLss(2)  AND NOT(COLss(1)) AND     COLss(0) ;
+S6   <=     COLss(2)  AND     COLss(1);--  AND NOT(COLs(0));
+S7   <=     COLss(2)  AND     COLss(1)  AND     COLss(0);-- AND COLss(2) AND COLss(1);
 
 -------------------------------------------------------------------------------
 PROCESS(CLK)
