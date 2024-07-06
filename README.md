@@ -1,18 +1,18 @@
 Tiled video controller for older processors such as Z80, 6502, 8086.
 
-The screen resolution is set to 1024*768.
-The screen turns out to be 128*96 spaces, with a font size of 8*8.
-You can also choose fonts 8*16, 16*16, 16*32 and 32*32.
-Accordingly, we get 128*48, 64*48, 64*24 and 32*24 acquaintances.
-For each familiarity, the background color and symbol color are set. 16 colors. Same as CGA 80*25.
-You can also enable line-by-line coloring for 8*8 and 8*16 modes.
+The screen resolution is set to 1024 x 768.
+The screen turns out to be 128 x 96 spaces, with a font size of 8 x 8.
+You can also choose fonts 8 x 16, 16 x 16, 16 x 32 and 32 x 32.
+Accordingly, we get 128 x 48, 64 x 48, 64 x 24 and 32 x 24 acquaintances.
+For each familiarity, the background color and symbol color are set. 16 colors. Same as CGA 80 x 25.
+You can also enable line-by-line coloring for 8 x 8 and 8 x 16 modes.
 
 For all modes.
 You can also enable the mode 4 colors per point, out of 256 palettes.
 And the mode is 16 colors per dot.
 
 3 experimental graphics modes.
-1024*768 mono, 512*384 4 colors and 256*192 16 colors.
+1024 x 768 mono, 512 x 384 - 4 colors and 256 x 192 - 16 colors.
 
 --------------------------------------------------------------------------------------------------------
 
