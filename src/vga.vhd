@@ -388,7 +388,7 @@ PORT MAP(CLK	=> NOT(HS1(3)),
 	 SClr	=> RESET_n,
 	 Q	=> HS);
 
-b2v_CompHV : comp1024x768
+b2v_CompHV : comp1024x768a
 PORT MAP(CLK	=> CLK,
 	 RST	=> RESET_n,
 	 H	=> COLs(11 DOWNTO 0),
