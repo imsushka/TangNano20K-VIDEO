@@ -8,16 +8,18 @@
         <File path="src/comp1024x768.v" type="file.verilog" enable="1"/>
         <File path="src/dvi_tx/dvi_tx.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_rpll/TMDS_rPLL.v" type="file.verilog" enable="1"/>
+        <File path="src/rom1k.v" type="file.verilog" enable="1"/>
+        <File path="src/sdoc16k.v" type="file.verilog" enable="1"/>
+        <File path="src/sdoc1k.v" type="file.verilog" enable="1"/>
+        <File path="src/sdoc8k.v" type="file.verilog" enable="1"/>
         <File path="src/sdram.v" type="file.verilog" enable="1"/>
+        <File path="src/sync.v" type="file.verilog" enable="1"/>
         <File path="src/uart_rx.v" type="file.verilog" enable="1"/>
         <File path="src/uart_tx.v" type="file.verilog" enable="1"/>
         <File path="src/video_top.v" type="file.verilog" enable="1"/>
-        <File path="src/Rom.vhd" type="file.vhdl" enable="1"/>
         <File path="src/color.vhd" type="file.vhdl" enable="1"/>
         <File path="src/comp1024x768.vhd" type="file.vhdl" enable="1"/>
         <File path="src/count.vhd" type="file.vhdl" enable="1"/>
-        <File path="src/gowin_prom/gowin_prom.vhd" type="file.vhdl" enable="1"/>
-        <File path="src/gowin_sp/gowin_sp.vhd" type="file.vhdl" enable="1"/>
         <File path="src/mapper.vhd" type="file.vhdl" enable="1"/>
         <File path="src/mux4to1.vhd" type="file.vhdl" enable="1"/>
         <File path="src/mux81to1.vhd" type="file.vhdl" enable="1"/>
@@ -30,7 +32,6 @@
         <File path="src/t80se/T80_Reg.vhd" type="file.vhdl" enable="1"/>
         <File path="src/t80se/T80a.vhd" type="file.vhdl" enable="1"/>
         <File path="src/vga.vhd" type="file.vhdl" enable="1"/>
-        <File path="src/videoRam.vhd" type="file.vhdl" enable="1"/>
         <File path="src/hdmi.cst" type="file.cst" enable="1"/>
         <File path="src/nano_20k_video.sdc" type="file.sdc" enable="1"/>
     </FileList>
