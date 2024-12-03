@@ -48,7 +48,10 @@ wire        ble ;
 wire        bhe ;
 wire [15:0] vdatai;
 wire [15:0] vdatao;
-wire [15:0] vaddr;
+wire [16:0] vaddr;
+wire [15:0] sdatao;
+wire [15:0] fdatao;
+wire [15:0] cdatao;
 
 reg        rwe1 ;
 reg        vwe1 ;
@@ -123,19 +126,20 @@ wire wr_vga;
 wire io_vga;
 wire io_map;
 
-wire MEMWR = cpu0_mreq_n | cpu0_wr_n;
-wire MEMRD = cpu0_mreq_n | cpu0_rd_n;
-wire IOWR  = cpu0_iorq_n | cpu0_wr_n;
-wire IORD  = cpu0_iorq_n | cpu0_rd_n;
-wire MEMROM = (a_busH == 12'hFFF);
+wire MEMWR   = cpu0_mreq_n | cpu0_wr_n;
+wire MEMRD   = cpu0_mreq_n | cpu0_rd_n;
+wire IOWR    = cpu0_iorq_n | cpu0_wr_n;
+wire IORD    = cpu0_iorq_n | cpu0_rd_n;
+wire MEMRAM  = (a_busH[11:4] !=  8'hFF);
+wire MEMROM  = (a_busH       == 12'hFFF);
 
-assign sdram_wr   = (MEMWR == 1'b0 && ~MEMROM)                   ? 1'b0 : 1'b1;
-assign sdram_rd   = (MEMRD == 1'b0 && ~MEMROM)                   ? 1'b0 : 1'b1;
+assign sdram_wr   = (MEMWR == 1'b0 && MEMRAM)                    ? 1'b0 : 1'b1;
+assign sdram_rd   = (MEMRD == 1'b0 && MEMRAM)                    ? 1'b0 : 1'b1;
 assign sdram_rfsh = (cpu0_mreq_n == 1'b0 && cpu0_rfsh_n == 1'b0) ? 1'b0 : 1'b1;
 
-//assign wr_vga = (MEMWR == 1'b0 && a_busH[11:4] == 8'hFF)         ? 1'b0 : 1'b1;
+assign wr_vga = (MEMWR == 1'b0 && a_busH[11:4] == 8'b11111111 )  ? 1'b0 : 1'b1;
 //assign wr_vga = (MEMWR == 1'b0 && cpu0_a_bus[15] == 1'b1)        ? 1'b0 : 1'b1;
-assign wr_vga = 1'b1;
+//assign wr_vga = 1'b1;
 
 assign io_vga = (IOWR  == 1'b0 && cpu0_a_bus[7:3] == 5'b11110)   ? 1'b0 : 1'b1;
 assign io_map = (IOWR  == 1'b0 && cpu0_a_bus[7:3] == 5'b11111)   ? 1'b0 : 1'b1;
@@ -178,11 +182,9 @@ vga u_vga(
     .RESET_n		(rst_n        ),//low active 
 
 //    .CSMEM (wr_vga),
-//    .CSREG (io_vga),
-//    .A        ({a_busH[2:0],cpu0_a_bus[12:0]}),
-//    .D        (cpu0_do_bus),
+    .CSREG (io_vga),
     .CSMEM		(1'b1),
-    .CSREG		(1'b1),
+//    .CSREG		(1'b1),
     .A			({a_busH[3:0],cpu0_a_bus[12:0]}),
     .D			(cpu0_do_bus),
 
@@ -204,19 +206,53 @@ vga u_vga(
 
 
 //==============================================================================
-video_ram u_vram(
+
+//==============================================================================
+ram_screen u_vram(
     .clk		(~CLK_65MHz),//pixel clock
 
     .data_w		({ cpu0_do_bus, cpu0_do_bus }),
     .addr_w		({ a_busH[3:0], cpu0_a_bus[12:1] }),
+//    .we			(1'b1),
     .we			(wr_vga),
     .le			( cpu0_a_bus[0]),
     .he			(~cpu0_a_bus[0]),
 
-    .data_r		(vdatao),
-    .addr_r		(vaddr)
+    .data_r		(sdatao),
+    .addr_r		(vaddr[15:0])
 );
 
+//==============================================================================
+ram_font u_fram(
+    .clk		(~CLK_65MHz),//pixel clock
+
+    .data_w		({ cpu0_do_bus, cpu0_do_bus }),
+    .addr_w		({ a_busH[3:0], cpu0_a_bus[12:1] }),
+    .we			(1'b1),
+//    .we			(wr_vga),
+    .le			( cpu0_a_bus[0]),
+    .he			(~cpu0_a_bus[0]),
+
+    .data_r		(fdatao),
+    .addr_r		(vaddr[15:0])
+);
+
+//==============================================================================
+ram_color u_cram(
+    .clk		(~CLK_65MHz),//pixel clock
+
+    .data_w		({ cpu0_do_bus, cpu0_do_bus }),
+    .addr_w		({ a_busH[3:0], cpu0_a_bus[12:1] }),
+    .we			(1'b1),
+//    .we			(wr_vga),
+    .le			( cpu0_a_bus[0]),
+    .he			(~cpu0_a_bus[0]),
+
+    .data_r		(cdatao),
+    .addr_r		(vaddr[15:0])
+);
+
+assign vdatao = (vaddr[16] == 1'b1) ? fdatao : (vaddr[16:8] == 9'b011111111) ? cdatao : sdatao;
 
 //==============================================================================
 // Zilog Z80A CPU
