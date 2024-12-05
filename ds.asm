@@ -547,7 +547,68 @@ ML53:
 
         LD      A,00010000B     ;
         OUT     ($F7),A         ; Video ctrl reg - set scale x1, multy color 
+;
+;
+;
+        LD      D,0FFH
+ML64:
+ML54:
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        DJNZ    ML54
 
+        DEC     D
+        JP      NZ,ML64
+
+        LD      A,00000000B     ;
+        OUT     ($F7),A         ; Video ctrl reg - set scale x1, multy color 
+
+        LD      E,80h
+        LD      C,1
+ML65:
+        LD      D,10h
+ML55:
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        DJNZ    ML55
+
+        DEC     D
+        JP      NZ,ML55
+
+        LD      A,C
+        OUT     ($F5),A         ; Video ctrl reg - set scale x1, multy color 
+        OUT     ($F6),A         ; Video ctrl reg - set scale x1, multy color 
+        INC     C
+        DEC     E
+        JP      NZ,ML65
 
         JP      CSTART
 
