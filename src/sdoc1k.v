@@ -8,8 +8,8 @@ input  [15:0] addr_w,addr_r;
 input  [15:0] data_w;
 output [15:0] data_r;
 
-reg [7:0] ramh [1023:0];
-reg [7:0] raml [1023:0];
+reg [7:0] ramh [255:0];
+reg [7:0] raml [255:0];
 reg [15:0] data_r;
 
 always @(posedge clk) begin

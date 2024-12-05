@@ -213,8 +213,8 @@ ram_screen u_vram(
 
     .data_w		({ cpu0_do_bus, cpu0_do_bus }),
     .addr_w		({ a_busH[3:0], cpu0_a_bus[12:1] }),
-//    .we			(1'b1),
-    .we			(wr_vga),
+    .we			(1'b1),
+//    .we			(wr_vga),
     .le			( cpu0_a_bus[0]),
     .he			(~cpu0_a_bus[0]),
 
@@ -252,7 +252,7 @@ ram_color u_cram(
     .addr_r		(vaddr[15:0])
 );
 
-assign vdatao = (vaddr[16] == 1'b1) ? fdatao : (vaddr[16:8] == 9'b011111111) ? cdatao : sdatao;
+assign vdatao = (vaddr[16] == 1'b1) ? fdatao : (vaddr[15:8] == 8'b11111111) ? cdatao : sdatao;
 
 //==============================================================================
 // Zilog Z80A CPU
