@@ -8,10 +8,9 @@ USART - 0xCE ( 0xCE - data / 0xCF - status )
 VGA - 0xF0 ()
 Mapper - 0xF8 ()
 
-ROM - based on retromon.asm v1.8 - a monitor for the <jb> Z80-Retro! SBC
-              	Kenny Maytum - KRSynthWorx - April 25th, 2023
+ROM - based on retromon.asm v1.8 - a monitor for the Z80-Retro! SBC	Kenny Maytum - KRSynthWorx - April 25th, 2023
 
-    - NASCOM ROM BASIC Ver 4.7, (C) 1978 Microsoft
+NASCOM ROM BASIC Ver 4.7, (C) 1978 Microsoft
 
 GAMES
 ----------------------------------------------------------------------
@@ -21,7 +20,7 @@ XONIX
 2048 (console)
 VGMPLAY
 Music from Vampir Killer MSX (on keybord 1-0)
---------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------**
 Tiled video controller for older processors such as Z80, 6502, 8086.
 
 The screen resolution is set to 1024 x 768.
