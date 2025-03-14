@@ -5,9 +5,11 @@
     <Version>5</Version>
     <Device name="GW2AR-18C" pn="GW2AR-LV18QN88C8/I7">gw2ar18c-000</Device>
     <FileList>
+        <File path="src/audio_drive.v" type="file.verilog" enable="1"/>
         <File path="src/dvi_tx/dvi_tx.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_rpll/TMDS_rPLL.v" type="file.verilog" enable="1"/>
-        <File path="src/rom1k.v" type="file.verilog" enable="1"/>
+        <File path="src/rom8k0.v" type="file.verilog" enable="1"/>
+        <File path="src/rom8k1.v" type="file.verilog" enable="1"/>
         <File path="src/sdoc16k.v" type="file.verilog" enable="1"/>
         <File path="src/sdoc1k.v" type="file.verilog" enable="1"/>
         <File path="src/sdoc8k.v" type="file.verilog" enable="1"/>
@@ -15,15 +17,18 @@
         <File path="src/uart_rx.v" type="file.verilog" enable="1"/>
         <File path="src/uart_tx.v" type="file.verilog" enable="1"/>
         <File path="src/video_top.v" type="file.verilog" enable="1"/>
-        <File path="src/count.vhd" type="file.vhdl" enable="1"/>
+        <File path="src/ay8910m.vhd" type="file.vhdl" enable="1"/>
         <File path="src/mapper.vhd" type="file.vhdl" enable="1"/>
         <File path="src/ram.vhd" type="file.vhdl" enable="1"/>
+        <File path="src/sn76489_audio.vhd" type="file.vhdl" enable="0"/>
+        <File path="src/synch.vhd" type="file.vhdl" enable="1"/>
         <File path="src/t80se/T80.vhd" type="file.vhdl" enable="1"/>
         <File path="src/t80se/T80_ALU.vhd" type="file.vhdl" enable="1"/>
         <File path="src/t80se/T80_MCode.vhd" type="file.vhdl" enable="1"/>
         <File path="src/t80se/T80_Reg.vhd" type="file.vhdl" enable="1"/>
         <File path="src/t80se/T80a.vhd" type="file.vhdl" enable="1"/>
         <File path="src/vga.vhd" type="file.vhdl" enable="1"/>
+        <File path="src/vga_regs.vhd" type="file.vhdl" enable="1"/>
         <File path="src/hdmi.cst" type="file.cst" enable="1"/>
         <File path="src/nano_20k_video.sdc" type="file.sdc" enable="1"/>
     </FileList>
