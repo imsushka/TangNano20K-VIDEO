@@ -1,4 +1,4 @@
-All files started from 0100h
+utAll files started from 0100h
 
 for use soft
 open .obj file in notepad, Ctrl+A (select all) and ctrl+C (copy)
@@ -6,7 +6,7 @@ in console press 'L' - Load Intel HEX file and Ctrl+V (paste)
 after download press 'G' - Goto and 0100
 
 lestnica = ladder
-klad = loderunner
+klad = rise out
 game = 2048
 
 VGMPLAY - AYplayer, needs download sound file. (MmcM_-_Summer_of_Rain)
