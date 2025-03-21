@@ -14,11 +14,12 @@ NASCOM ROM BASIC Ver 4.7, (C) 1978 Microsoft
 
 GAMES
 ----------------------------------------------------------------------
-Ladder
-RISE OUT
-XONIX
-2048 (console)
-VGMPLAY
+Ladder, 
+RISE OUT, 
+XONIX, 
+2048 (console), 
+snake, 
+VGMPLAY, 
 Music from Vampir Killer MSX (on keybord 1-0)
 --------------------------------------------------------------------------------------------**
 Tiled video controller for older processors such as Z80, 6502, 8086.
