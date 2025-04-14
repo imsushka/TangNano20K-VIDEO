@@ -11,7 +11,6 @@ ENTITY VGA IS
 		RESET_n :  IN  STD_LOGIC;
 
 		CONTROL :  IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
---		CONTROLx:  IN  STD_LOGIC_VECTOR(6 DOWNTO 0);
 		HSCROLL :  IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
 		VSCROLL :  IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
 		HCURSOR :  IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
@@ -59,11 +58,7 @@ SIGNAL	F32Line    : STD_LOGIC;
 SIGNAL	MFONT      : STD_LOGIC;
 SIGNAL	EXTATR     : STD_LOGIC;
 SIGNAL	EXTATRF    : STD_LOGIC;
---SIGNAL	EXTATRC16  : STD_LOGIC;
-SIGNAL	EXTATRC32  : STD_LOGIC;
-SIGNAL	EXTATRC64  : STD_LOGIC;
 
-SIGNAL	FONT_Temp  : STD_LOGIC;
 SIGNAL	FONT_1bit  : STD_LOGIC;
 SIGNAL	FONT_2bit  : STD_LOGIC;
 SIGNAL	FONT_4bit  : STD_LOGIC;
@@ -79,6 +74,8 @@ SIGNAL	CURSOR     : STD_LOGIC;
 
 BEGIN 
 -------------------------------------------------------------------------------
+-- 0x00000 - 0x07FFF = 32768 WORDS screen buffer
+--
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -122,7 +119,8 @@ BEGIN
 --
 -- Mode 16x08 and 16x16 2bit ( 32 bit font )
 -- attribute bits
--- 4-0 - 32 colors palets, 4 color eath
+-- 3-0 - 16 colors palets, 4 color eath
+-- 4   - not used
 -- 5   - 2 font table (512 chars)
 -- 6   - H flip
 -- 7   - V flip
@@ -142,7 +140,8 @@ BEGIN
 --
 -- Mode 16x32 and 32x32 2bit ( 32/64 bit font )
 -- attribute bits
--- 5-0 - 64 colors palets, 4 color eath
+-- 3-0 - 16 colors palets, 4 color eath
+-- 5-4 - not used
 -- 6   - H flip
 -- 7   - V flip
 --
@@ -187,11 +186,10 @@ F16x32       <=     CONTROL(6)  AND NOT(CONTROL(5)) AND     CONTROL(4);
 F32x16       <=     CONTROL(6)  AND     CONTROL(5)  AND NOT(CONTROL(4));
 F32x32       <=     CONTROL(6)  AND     CONTROL(5)  AND     CONTROL(4);
 -------------------------------------------------------------------------------
-FONT_temp    <=       CONTROL(3)  AND     CONTROL(2);
-FONT_1bit    <= ( NOT(CONTROL(3)) AND NOT(CONTROL(2)) ) OR FONT_Temp;
-FONT_2bit    <=   NOT(CONTROL(3)) AND     CONTROL(2);
-FONT_4bit    <=       CONTROL(3)  AND NOT(CONTROL(2));
-FONT_1bitE   <=         FONT_Temp AND F08Pix;
+FONT_1bit    <= NOT(CONTROL(3)) AND NOT(CONTROL(2));
+FONT_2bit    <= NOT(CONTROL(3)) AND     CONTROL(2);
+FONT_4bit    <=     CONTROL(3)  AND NOT(CONTROL(2));
+FONT_1bitE   <=     CONTROL(3)  AND     CONTROL(2)  AND F08Pix;
 
 SCALE_x1     <= ( NOT(CONTROL(1)) AND NOT(CONTROL(0)) ) OR ( CONTROL(1) AND CONTROL(0) );
 SCALE_x2     <=   NOT(CONTROL(1)) AND     CONTROL(0);
@@ -208,11 +206,8 @@ F32Line      <= F32x32 OR F16x32;
 -------------------------------------------------------------------------------
 MFONT        <= CONTROL(7) AND NOT(CONTROL(6));
 
-EXTATR       <= NOT(GRAF) AND NOT(FONT_1bit AND NOT(FONT_1bitE));
+EXTATR       <= NOT(GRAF) AND NOT(FONT_1bit);
 EXTATRF      <= EXTATR AND NOT(CONTROL(6));
---EXTATRC16    <= EXTATR AND F08Pix;
-EXTATRC32    <= EXTATR AND ( F16x16 OR F16x08 );
-EXTATRC64    <= EXTATR AND CONTROL(6);
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 DOTClk <= H(1) WHEN ( SCALE_x4 = '1' ) ELSE
@@ -236,7 +231,7 @@ variable vATTRIBUTE :  STD_LOGIC_VECTOR(7 DOWNTO 0);
 variable vCOLOR     :  STD_LOGIC_VECTOR(7 DOWNTO 0);
 
 variable vX         :  STD_LOGIC_VECTOR(7 DOWNTO 0);
-variable vY         :  STD_LOGIC_VECTOR(7 DOWNTO 0);
+variable vY         :  STD_LOGIC_VECTOR(6 DOWNTO 0);
 variable v_X        :  STD_LOGIC_VECTOR(6 DOWNTO 0);
 variable v_Y        :  STD_LOGIC_VECTOR(6 DOWNTO 0);
 variable vCOLS      :  STD_LOGIC_VECTOR(4 DOWNTO 0);
@@ -288,27 +283,27 @@ BEGIN
         END IF;
   
         IF     ( F32Line = '1'  AND SCALE_x4 = '1' )  THEN
-          vY := "00000" & V( 9 DOWNTO 7);
+          vY := "0000" & V( 9 DOWNTO 7);
         ELSIF (( F32Line = '1'  AND SCALE_x2 = '1' ) OR
                ( F16Line = '1'  AND SCALE_x4 = '1' )) THEN
-          vY := "0000"  & V( 9 DOWNTO 6);
+          vY := "000"  & V( 9 DOWNTO 6);
         ELSIF (( F32Line = '1'  AND SCALE_x1 = '1' ) OR
                ( F16Line = '1'  AND SCALE_x2 = '1' ) OR
                ( F08Line = '1'  AND SCALE_x4 = '1' )) THEN
-          vY := "000"   & V( 9 DOWNTO 5);
+          vY := "00"   & V( 9 DOWNTO 5);
         ELSIF (( F16Line = '1'  AND SCALE_x1 = '1' ) OR
                ( F08Line = '1'  AND SCALE_x2 = '1' )) THEN
-          vY := "00"    & V( 9 DOWNTO 4);
+          vY := '0'    & V( 9 DOWNTO 4);
         ELSE
-          vY := '0'     & V( 9 DOWNTO 3);
+          vY :=          V( 9 DOWNTO 3);
         END IF;
   
         v_X := vX(6 DOWNTO 0);
-        v_Y := vY(6 DOWNTO 0);
+        v_Y := vY;
 
         vX  := vX + HSCROLL;
-        vY  := vY + VSCROLL;
-        vADDR := vY & vX;
+        vY  := vY + VSCROLL(6 DOWNTO 0);
+        vADDR := '0' & vY & vX;
       END IF;
   
       VA <= '0' & vADDR;
@@ -340,7 +335,7 @@ BEGIN
       IF ( F08Pix = '1' )  THEN
         vFONT_ADDR(1) := EXTATRF AND vATTRIBUTE(4);
       ELSE
-        vFONT_ADDR(1) := NOT(FONT_1bit) AND vCOLS(3);
+        vFONT_ADDR(1) := NOT(FONT_1bit OR FONT_1bitE) AND vCOLS(3);
       END IF;
 
       IF ( FONT_4bit = '1' ) THEN
@@ -356,13 +351,13 @@ BEGIN
       FONT_ROW1 <= VDi;
 
       IF ( FONT_4bit = '1' ) THEN
-        vFONT_ADDR(0) := vCOLS(2);
+        vFONT_ADDR(0) := NOT(vCOLS(2));
       ELSE
         vFONT_ADDR(0) := EXTATRF AND vATTRIBUTE(5);
       END IF;
 
       IF ( FONT_2bit = '1' ) THEN
-        VA <= '0' & "11111111" & (MFONT AND V(9)) & (MFONT AND V(8)) & (vATTRIBUTE(5) AND EXTATRC64) & (vATTRIBUTE(4) AND EXTATRC32) & vATTRIBUTE(3 DOWNTO 0);
+        VA <= '0' & "1111111111" & (MFONT AND V(9)) & (MFONT AND V(8)) & vATTRIBUTE(3 DOWNTO 0);
       ELSE
         VA <= '1' & vFONT_ADDR;
       END IF;
@@ -626,7 +621,7 @@ BEGIN
     IF ( DOTBLANK = '0' ) THEN
       tCOLOR := "0000";
     ELSE
-      IF ( FONT_1bit = '1' ) THEN
+      IF ( ( FONT_1bit OR FONT_1bitE ) = '1' ) THEN
         IF ( GRAF = '1' ) THEN
           IF ( vPIXEL1 = '1' ) THEN
             tCOLOR := "1111";
