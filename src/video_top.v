@@ -196,6 +196,8 @@ reg  IRQ7_; //= 1'b1;
 
 reg [7:0]  count_rst;
 
+wire        vgaF_wr;
+wire        vgaS_wr;
 wire        vga_wr;
 wire        o_vga;
 wire        o_map;
@@ -210,16 +212,44 @@ wire        i_ym;
 // 
 //==================================================
 wire        blank;
+wire        hact;
+wire        vact;
+wire [3:0]  color;
+wire [3:0]  scolor;
 wire [3:0]  ccolor;
 wire [3:0]  vcolor;
 reg [14:0]  rgb;
-wire [7:0]  control;
+wire [9:0]  control;
 wire [7:0]  hscroll;
 wire [7:0]  vscroll;
 wire [7:0]  hcursor;
 wire [7:0]  vcursor;
 wire [11:0]  h;
 wire [11:0]  v;
+wire [2:0]  animat;
+wire [5:0]  split0;
+wire [6:0]  split1;
+
+
+wire [16:0] spr_addr;
+wire [15:0] spr_data;
+wire [15:0] spr_dataF;
+wire [15:0] spr_datao;
+
+wire [10:0]  lb_ar;
+wire [10:0]  lb_aw;
+wire [3:0]  lb_di;
+wire [3:0]  lb_do;
+
+wire [4:0]   spr_ar;
+wire [4:0]   spr_aw;
+wire [63:0]  spr_di;
+wire [63:0]  spr_do;
+wire        spr_we;
+wire        spr_oe;
+wire        lb_wr;
+wire        lb_we;
+wire        lb_clr;
 
 //==================================================
 // 
@@ -232,6 +262,9 @@ wire IORQ    = (cpu_iorq_n == 1'b0);
 
 wire MEMRAM  = (map_a_bus[11:10] ==  2'b10          );
 wire MEMVGA  = (map_a_bus[11:4]  ==  8'b11000000    );
+wire MEMVGAF = (map_a_bus[11:4]  ==  8'b11000001    );
+wire MEMVGAS = (map_a_bus[11:4]  ==  8'b11000010    );
+wire MEMVGAT = (map_a_bus[11:4]  ==  8'b11000011    );
 wire MEMROM8 = (map_a_bus        == 12'b111111111000);
 wire MEMROM9 = (map_a_bus        == 12'b111111111001);
 wire MEMROMA = (map_a_bus        == 12'b111111111010);
@@ -283,6 +316,9 @@ begin
 end
 
 assign vga_wr     = (MEMWR == 1'b0 && MEMVGA)                    ? 1'b0 : 1'b1;
+assign vgaF_wr    = (MEMWR == 1'b0 && MEMVGAF)                   ? 1'b0 : 1'b1;
+assign vgaS_wr    = (MEMWR == 1'b0 && MEMVGAS)                   ? 1'b0 : 1'b1;
+assign vgaT_wr    = (MEMWR == 1'b0 && MEMVGAT)                   ? 1'b0 : 1'b1;
 assign sdram_wr   = (MEMWR == 1'b0 && MEMRAM)                    ? 1'b0 : 1'b1;
 assign sdram_rd   = (MEMRD == 1'b0 && MEMRAM)                    ? 1'b0 : 1'b1;
 assign sdram_rfsh = (cpu_mreq_n == 1'b0 && cpu_rfsh_n == 1'b0) ? 1'b0 : 1'b1;
@@ -337,11 +373,13 @@ vga_regs _vga_regs(
 	.hcursor	(hcursor),
 	.vcursor	(vcursor),
 
-	.VA		(vaddr1),
-	.VDo		(vdatai),
-	.VWE		(vwe),
-	.BLE		(ble),
-	.BHE		(bhe)
+	.split0		(split0),
+	.split1		(split1)
+//	.VA		(vaddr1),
+//	.VDo		(vdatai),
+//	.VWE		(vwe),
+//	.BLE		(ble),
+//	.BHE		(bhe)
 );
 //==============================================================================
 synch u_synch(
@@ -351,25 +389,15 @@ synch u_synch(
 	.h		(h),
 	.v		(v),
 
+	.animat		(animat),
+
+	.hactive	(hact),
+	.vactive	(vact),
 	.blank		(blank),   
+
 	.hsync		(tp0_hs_in),
 	.vsync		(tp0_vs_in)
 );
-//==============================================================================
-//cursor u_cursor(
-//	.clk		(CLK_65MHz    ),//pixel clock
-//	.RESET_n	(rst_n        ),//low active 
-//
-//	.control	(control),
-//	.hcursor	(hcursor),
-//	.vcursor	(vcursor),
-//
-//	.h		(h),
-//	.v		(v),
-//	.blank		(blank),   
-//
-//	.color		(ccolor)
-//);
 //==============================================================================
 vga u_vga(
 	.clk		(CLK_65MHz    ),//pixel clock
@@ -383,15 +411,55 @@ vga u_vga(
 
 	.h		(h),
 	.v		(v),
+
+	.animat		(animat),
+	.split0		(split0),
+	.split1		(split1),
+
+//	.hactive	(hact),
+//	.vactive	(vact),
 	.blank		(blank),
    
 	.color		(vcolor),
-//	.palette	(),
+//	.palette	(ccolor),
 
 	.VA		(vaddr),
 	.VDi		(vdatao),
 	.VOE		(voe)
 );
+//==============================================================================
+//sprite u_sprite(
+//	.clk		(CLK_65MHz    ),//pixel clock
+//	.RESET_n	(rst_n        ),//low active 
+
+//	.h		(h),
+//	.v		(v),
+
+//	.hactive	(hact),
+//	.vactive	(vact),
+ 
+//	.vsdi		(spr_di),
+//	.vsdo		(spr_do),
+//	.vsaw		(spr_aw),
+//	.vsar		(spr_ar),
+//	.vswe		(spr_we),
+
+//	.vlbdi		(lb_di),
+//	.vlbdo		(lb_do),
+//	.vlbar		(lb_ar),
+//	.vlbaw		(lb_aw),
+//	.vlbwe		(lb_we),
+//	.vlbclr		(lb_clr),
+
+//	.color		(scolor),
+
+//	.VA		(spr_addr),
+//	.VDi		(spr_datao),
+//	.VOE		(spr_oe)
+//);
+
+assign color = (scolor == 4'b0) ? vcolor : scolor;
+
 //==============================================================================
 always @(*) begin
   case (vcolor)
@@ -420,7 +488,7 @@ assign tp0_data_g = {rgb[ 9: 5], 3'b000};
 assign tp0_data_b = {rgb[14:10], 3'b000};
 //==============================================================================
 ram_screen u_vram(
-    .clk		(~CLK_65MHz	),//pixel clock
+    .clk		(CLK_65MHz	),//pixel clock
 
     .data_w		({ cpu_do_bus, cpu_do_bus }),
     .addr_w		({ map_a_bus[3:0], cpu_a_bus[12:1] }),
@@ -435,12 +503,12 @@ ram_screen u_vram(
 
 //==============================================================================
 ram_font u_fram(
-    .clk		(~CLK_65MHz	),//pixel clock
+    .clk		(CLK_65MHz	),//pixel clock
 
     .data_w		({ cpu_do_bus, cpu_do_bus }),
     .addr_w		({ map_a_bus[3:0], cpu_a_bus[12:1] }),
-    .we			(1'b1		),
-//    .we			(vga_wr),
+//    .we			(1'b1		),
+    .we			(vgaF_wr),
     .le			( cpu_a_bus[0]	),
     .he			(~cpu_a_bus[0]	),
 
@@ -450,7 +518,7 @@ ram_font u_fram(
 
 //==============================================================================
 ram_color u_cram(
-    .clk		(~CLK_65MHz	),//pixel clock
+    .clk		(CLK_65MHz	),//pixel clock
 
     .data_w		({ cpu_do_bus, cpu_do_bus }),
     .addr_w		({ map_a_bus[3:0], cpu_a_bus[12:1] }),
@@ -463,7 +531,61 @@ ram_color u_cram(
     .addr_r		(vaddr[15:0]	)
 );
 
+//==============================================================================
+//ram_sprite u_sram(
+//    .clk		(CLK_65MHz	),//pixel clock
+
+//    .data_w		({ cpu_do_bus, cpu_do_bus }),
+//    .addr_w		({ map_a_bus[3:0], cpu_a_bus[12:1] }),
+//    .we			(vgaS_wr),
+//    .le			( cpu_a_bus[0]	),
+//    .he			(~cpu_a_bus[0]	),
+
+//    .data_r		(spr_data	),
+//    .addr_r		(spr_addr	)
+//);
+
+//==============================================================================
+//ram_spriteF u_sfram(
+//    .clk		(CLK_65MHz	),//pixel clock
+
+//    .data_w		({ cpu_do_bus, cpu_do_bus }),
+//    .addr_w		({ map_a_bus[3:0], cpu_a_bus[12:1] }),
+//    .we			(vgaT_wr),
+//    .le			( cpu_a_bus[0]	),
+//    .he			(~cpu_a_bus[0]	),
+
+//    .data_r		(spr_dataF	),
+//    .addr_r		(spr_addr	)
+//);
+
+//==============================================================================
+//lbram u_lbram(
+//    .clk		(CLK_65MHz	),//pixel clock
+
+//    .data_w		( lb_do		),
+//    .addr_w		( lb_aw		),
+//    .we			( lb_we		),
+//    .clr		( lb_clr	),
+
+//    .data_r		( lb_di		),
+//    .addr_r		( lb_ar		)
+//);
+
+//==============================================================================
+//ram_oam u_oamram(
+//    .clk		(CLK_65MHz	),//pixel clock
+
+//    .data_w		( spr_do	),
+//    .addr_w		( spr_aw	),
+//    .we			( spr_we	),
+
+//    .data_r		( spr_di	),
+//    .addr_r		( spr_ar	)
+//);
+
 assign vdatao = (vaddr[16] == 1'b1) ? fdatao : (vaddr[15:8] == 8'b11111111) ? cdatao : sdatao;
+//assign spr_datao = (spr_addr[16] == 1'b1) ? spr_dataF : spr_data;
 
 //==============================================================================
 // Zilog Z80A CPU

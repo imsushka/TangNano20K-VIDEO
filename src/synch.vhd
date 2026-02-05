@@ -16,11 +16,13 @@ ENTITY SYNCH IS
 		HACTIVE : OUT  STD_LOGIC;
 		VACTIVE : OUT  STD_LOGIC;
 
+		ANIMAT  : OUT  STD_LOGIC_VECTOR(2 DOWNTO 0);
+
 		HSYNC   : OUT  STD_LOGIC;
 		VSYNC   : OUT  STD_LOGIC;
 		BLANK   : OUT  STD_LOGIC
 	);
-END SYNCH;
+END;
 
 ARCHITECTURE bdf_type OF SYNCH IS 
 
@@ -39,6 +41,8 @@ variable vVy   : STD_LOGIC_VECTOR(11 DOWNTO 0);
 variable vHACTIVE  : STD_LOGIC;
 variable vVACTIVE  : STD_LOGIC;
 
+variable vAnim : STD_LOGIC_VECTOR(5 DOWNTO 0);
+
 BEGIN
 -------------------------------------------------------------------------------
 -- Horisontal & Vertical counters
@@ -53,6 +57,7 @@ BEGIN
       vV := vV + 1;
       IF ( vV = 806 ) THEN
         vV := (OTHERS => '0');
+        vAnim := vAnim + 1;
       END IF;
     END IF;
   END IF;
@@ -94,10 +99,12 @@ BEGIN
   H <= vHx;
   V <= vVy;
 
+  ANIMAT <= vAnim(5 DOWNTO 3);
+
   HACTIVE <= vHACTIVE;
   VACTIVE <= vVACTIVE;
   BLANK   <= vHACTIVE AND vVACTIVE;
 -------------------------------------------------------------------------------
 END PROCESS;
 
-END bdf_type;
+END;

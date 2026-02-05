@@ -10,7 +10,7 @@ ENTITY VGA IS
 		CLK     :  IN  STD_LOGIC;
 		RESET_n :  IN  STD_LOGIC;
 
-		CONTROL :  IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
+		CONTROL :  IN  STD_LOGIC_VECTOR(9 DOWNTO 0);
 		HSCROLL :  IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
 		VSCROLL :  IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
 		HCURSOR :  IN  STD_LOGIC_VECTOR(7 DOWNTO 0);
@@ -18,6 +18,10 @@ ENTITY VGA IS
 
 		H       :  IN  STD_LOGIC_VECTOR(11 DOWNTO 0);
 		V       :  IN  STD_LOGIC_VECTOR(11 DOWNTO 0);
+
+		ANIMAT  :  IN  STD_LOGIC_VECTOR(2 DOWNTO 0);
+		SPLIT0  :  IN  STD_LOGIC_VECTOR(5 DOWNTO 0);
+		SPLIT1  :  IN  STD_LOGIC_VECTOR(6 DOWNTO 0);
 
 		BLANK   :  IN  STD_LOGIC;
 		COLOR   : OUT  STD_LOGIC_VECTOR(3 DOWNTO 0);
@@ -27,7 +31,7 @@ ENTITY VGA IS
 		VA      : OUT  STD_LOGIC_VECTOR(16 DOWNTO 0);
 		VOE     : OUT  STD_LOGIC
 	);
-END VGA;
+END;
 
 ARCHITECTURE bdf_type OF VGA IS 
 
@@ -72,6 +76,16 @@ SIGNAL	HByte      : STD_LOGIC;
 SIGNAL	HFlip      : STD_LOGIC;
 SIGNAL	CURSOR     : STD_LOGIC;
 
+SIGNAL  COLs       :  STD_LOGIC_VECTOR(4 DOWNTO 0);
+SIGNAL  ROWs       :  STD_LOGIC_VECTOR(4 DOWNTO 0);
+SIGNAL  X          :  STD_LOGIC_VECTOR(7 DOWNTO 0);
+SIGNAL  Y          :  STD_LOGIC_VECTOR(7 DOWNTO 0);
+SIGNAL  Xs         :  STD_LOGIC_VECTOR(7 DOWNTO 0);
+SIGNAL  Ys         :  STD_LOGIC_VECTOR(7 DOWNTO 0);
+
+SIGNAL	TILE_ADDR  : STD_LOGIC_VECTOR(15 DOWNTO 0);
+SIGNAL	GRAF_ADDR  : STD_LOGIC_VECTOR(15 DOWNTO 0);
+
 BEGIN 
 -------------------------------------------------------------------------------
 -- 0x00000 - 0x07FFF = 32768 WORDS screen buffer
@@ -103,74 +117,48 @@ BEGIN
 --MEM_SCR_GRAFx2  --  512 x 384 = 49152
 --MEM_SCR_GRAFx4  --  256 x 192 = 24576
 -------------------------------------------------------------------------------
--- Mode 08x08 and 08x16 1bitE ( 8 bit font )
--- attribute bits
--- 3-0 - not used
--- 5-4 - 4 font table (1024 chars)
--- 6   - H flip
--- 7   - V flip
+-- Tile map format - 16 bit
+-- 15-12 - background color
+-- 11-8  - fg color
+-- 7-0   - tile index
 --
--- Mode 08x08 and 08x16 2bit ( 16 bit font )
--- attribute bits
--- 3-0 - 16 colors palets, 4 color eath
--- 5-4 - 4 font table (1024 chars)
--- 6   - H flip
--- 7   - V flip
+-- for next modes tile map format - 16 bit
+-- 15    - VFlip
+-- 14    - HFlip
+-- 13    - tile index 8 (8/16 pixel modes)
+-- 12    - tile index 9 (8 pixel mode only)
+-- 11    - Animation block (tile index mod 4/8, tile index 0 set animation size 4 or 8 tiles)
+-- 10-8  - Palette for 2bits modes
+-- 7-0   - tile index
 --
--- Mode 16x08 and 16x16 2bit ( 32 bit font )
--- attribute bits
--- 3-0 - 16 colors palets, 4 color eath
--- 4   - not used
--- 5   - 2 font table (512 chars)
--- 6   - H flip
--- 7   - V flip
 --
--- Mode 08x08 and 08x16 4bit ( 32 bit font )
--- attribute bits
--- 4-0 - not used
--- 5   - 2 font table (512 chars)
--- 6   - H flip
--- 7   - V flip
---
--- Mode 16x08 and 16x16 4bit ( 64 bit font )
--- attribute bits
--- 5-0 - not used
--- 6   - H flip
--- 7   - V flip
---
--- Mode 16x32 and 32x32 2bit ( 32/64 bit font )
--- attribute bits
--- 3-0 - 16 colors palets, 4 color eath
--- 5-4 - not used
--- 6   - H flip
--- 7   - V flip
---
--- Mode 16x32 and 32x32 4bit ( 64/128 bit font )
--- attribute bits
--- 5-0 - not used
--- 6   - H flip
--- 7   - V flip
+-- ExFn - Extended font
+-- AnBlk - Animation block
+-- AnSiz - Animation size (0 bit in tile index if set AnBlk)
+-- Pal - Palette
+--                                  |  7  |  6  |  5  |  4  |  3  |  2  |  1  |  0  |CTRL7|TILE0|
+--                                  |VFlip|HFlip|ExFn0|ExFn1|AnBlk|Pal2 |Pal1 |Pal0 |MFont|AnSiz|
+-- Mode 08x08 1bitE (  8 bit font ) | yes   yes   yes   yes   yes   no    no    no    yes   yes
+-- Mode 08x16 1bitE (  8 bit font ) | yes   yes   yes   yes   yes   no    no    no    yes   yes
+--                                                                                             
+-- Mode 08x08 2bit (  16 bit font ) | yes   yes   yes   yes   yes   yes   yes   yes   yes   yes
+-- Mode 08x16 2bit (  16 bit font ) | yes   yes   yes   yes   yes   yes   yes   yes   yes   yes
+-- Mode 16x08 2bit (  32 bit font ) | yes   yes   yes   no    yes   yes   yes   yes   yes   yes
+-- Mode 16x16 2bit (  32 bit font ) | yes   yes   yes   no    yes   yes   yes   yes   yes   yes
+--                                                                                             
+-- Mode 08x08 4bit (  32 bit font ) | yes   yes   yes   no    yes   no    no    no    yes   yes
+-- Mode 08x16 4bit (  32 bit font ) | yes   yes   yes   no    yes   no    no    no    yes   yes
+-- Mode 16x08 4bit (  64 bit font ) | yes   yes   no    no    yes   no    no    no    yes   yes
+-- Mode 16x16 4bit (  64 bit font ) | yes   yes   no    no    yes   no    no    no    yes   yes
+--                                                                                             
+-- Mode 16x32 2bit (  32 bit font ) | yes   yes   no    no    yes   yes   yes   yes   no    yes
+-- Mode 32x32 2bit (  64 bit font ) | yes   yes   no    no    yes   yes   yes   yes   no    yes
+--                                                                                             
+-- Mode 16x32 4bit (  64 bit font ) | yes   yes   no    no    yes   no    no    no    no    yes
+-- Mode 32x32 4bit ( 128 bit font ) | yes   yes   no    no    yes   no    no    no    no    yes
 --
 -------------------------------------------------------------------------------
--- Sprite
 --
--- 1st word
---  9- 0 Y
--- 11-10 Prio
--- 15-12 Char lo
---
--- 2nd word
--- 10- 0 X
--- 11    
--- 15-12 Char hi
---
--- 3rd word
---  7- 0 Color
---  9- 8 Bits
--- 12-10 Size 8x8 / 16x16 /32x32
--- 13
--- 14    H flip
--- 15    V flip 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 -- STATIC CONFIGURATION -------------------------------------------------------
@@ -186,10 +174,10 @@ F16x32       <=     CONTROL(6)  AND NOT(CONTROL(5)) AND     CONTROL(4);
 F32x16       <=     CONTROL(6)  AND     CONTROL(5)  AND NOT(CONTROL(4));
 F32x32       <=     CONTROL(6)  AND     CONTROL(5)  AND     CONTROL(4);
 -------------------------------------------------------------------------------
-FONT_1bit    <= NOT(CONTROL(3)) AND NOT(CONTROL(2));
-FONT_2bit    <= NOT(CONTROL(3)) AND     CONTROL(2);
-FONT_4bit    <=     CONTROL(3)  AND NOT(CONTROL(2));
-FONT_1bitE   <=     CONTROL(3)  AND     CONTROL(2)  AND F08Pix;
+FONT_1bit    <= ( NOT(CONTROL(3)) AND NOT(CONTROL(2)) ) OR ( CONTROL(3) AND CONTROL(2) AND NOT(F08Pix) );
+FONT_2bit    <=   NOT(CONTROL(3)) AND     CONTROL(2);
+FONT_4bit    <=       CONTROL(3)  AND NOT(CONTROL(2));
+FONT_1bitE   <=       CONTROL(3)  AND     CONTROL(2)    AND F08Pix;
 
 SCALE_x1     <= ( NOT(CONTROL(1)) AND NOT(CONTROL(0)) ) OR ( CONTROL(1) AND CONTROL(0) );
 SCALE_x2     <=   NOT(CONTROL(1)) AND     CONTROL(0);
@@ -209,33 +197,102 @@ MFONT        <= CONTROL(7) AND NOT(CONTROL(6));
 EXTATR       <= NOT(GRAF) AND NOT(FONT_1bit);
 EXTATRF      <= EXTATR AND NOT(CONTROL(6));
 -------------------------------------------------------------------------------
+DOTClk       <= H(1) WHEN ( SCALE_x4 = '1' ) ELSE
+                H(0) WHEN ( SCALE_x2 = '1' ) ELSE
+                CLK;
 -------------------------------------------------------------------------------
-DOTClk <= H(1) WHEN ( SCALE_x4 = '1' ) ELSE
-          H(0) WHEN ( SCALE_x2 = '1' ) ELSE
-          CLK;
+COLs         <= H(6 DOWNTO 2) WHEN ( SCALE_x4 = '1' ) ELSE
+                H(5 DOWNTO 1) WHEN ( SCALE_x2 = '1' ) ELSE
+                H(4 DOWNTO 0);
 -------------------------------------------------------------------------------
+ROWs         <= V(6 DOWNTO 2) WHEN ( SCALE_x4 = '1' ) ELSE
+                V(5 DOWNTO 1) WHEN ( SCALE_x2 = '1' ) ELSE
+                V(4 DOWNTO 0);
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+X            <= "00000" & H(9 DOWNTO 7) WHEN ( F32Pix = '1'  AND SCALE_x4 = '1' ) ELSE
+                "0000"  & H(9 DOWNTO 6) WHEN ( F32Pix = '1'  AND SCALE_x2 = '1' ) OR
+                                             ( F16Pix = '1'  AND SCALE_x4 = '1' ) ELSE
+                "000"   & H(9 DOWNTO 5) WHEN ( F32Pix = '1'  AND SCALE_x1 = '1' ) OR
+                                             ( F16Pix = '1'  AND SCALE_x2 = '1' ) OR
+                                             ( F08Pix = '1'  AND SCALE_x4 = '1' ) ELSE
+                "00"    & H(9 DOWNTO 4) WHEN ( F16Pix = '1'  AND SCALE_x1 = '1' ) OR
+                                             ( F08Pix = '1'  AND SCALE_x2 = '1' ) ELSE
+                '0'     & H(9 DOWNTO 3);
+-------------------------------------------------------------------------------
+Y            <= "00000" & V(9 DOWNTO 7) WHEN ( F32Line = '1'  AND SCALE_x4 = '1' ) ELSE
+                "0000"  & V(9 DOWNTO 6) WHEN ( F32Line = '1'  AND SCALE_x2 = '1' ) OR
+                                             ( F16Line = '1'  AND SCALE_x4 = '1' ) ELSE
+                "000"   & V(9 DOWNTO 5) WHEN ( F32Line = '1'  AND SCALE_x1 = '1' ) OR
+                                             ( F16Line = '1'  AND SCALE_x2 = '1' ) OR
+                                             ( F08Line = '1'  AND SCALE_x4 = '1' ) ELSE
+                "00"    & V(9 DOWNTO 4) WHEN ( F16Line = '1'  AND SCALE_x1 = '1' ) OR
+                                             ( F08Line = '1'  AND SCALE_x2 = '1' ) ELSE
+                '0'     & V(9 DOWNTO 3);
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+--PROCESS(X, Y, HSCROLL, VSCROLL)
+--variable vX : STD_LOGIC_VECTOR(7 DOWNTO 0);
+--variable vY : STD_LOGIC_VECTOR(7 DOWNTO 0);
+--BEGIN
+--  IF CONTROL(8) = '1' THEN
+--    IF Y < "00" & SPLIT0 THEN
+--      vX := X;
+--      vY := Y;
+--    ELSIF Y < '0' & SPLIT1 THEN
+--      vX := X + HSCROLL;
+--      vY := Y + VSCROLL;
+--    ELSE
+--      vX := X;
+--      vY(4 DOWNTO 0) := Y(4 DOWNTO 0);
+--      vY(5) := Y(5) XOR '1';
+--      vY(6) := Y(6) OR Y(5);
+--      vY(7) := Y(7);
+--    END IF;
+--  ELSE
+--    vX := X + HSCROLL;
+--    vY := Y + VSCROLL;
+--  END IF;
+--  Xs <= vX;
+--  Ys <= vY;
+--END PROCESS;
+
+Xs <= X + HSCROLL WHEN CONTROL(8) = '0'  ELSE
+      X           WHEN Y < "00" & SPLIT0 ELSE
+      X + HSCROLL WHEN Y <  '0' & SPLIT1 ELSE
+      X;
+
+Ys <= Y + VSCROLL WHEN CONTROL(8) = '0'  ELSE
+      Y           WHEN Y < "00" & SPLIT0 ELSE
+      Y + VSCROLL WHEN Y <  '0' & SPLIT1 ELSE
+      Y(7) & (Y(6) OR Y(5)) & (Y(5) XOR '1') & Y(4 DOWNTO 0);
+
+--Xs <= X + HSCROLL;
+--Ys <= Y + VSCROLL;
+
+-------------------------------------------------------------------------------
+GRAF_ADDR    <= "00" & V( 9 DOWNTO 2) & H( 9 DOWNTO 4) WHEN ( FONT_4bit = '1' AND SCALE_x4 = '1' ) ELSE
+                "0"  & V( 9 DOWNTO 1) & H( 9 DOWNTO 4) WHEN ( FONT_2bit = '1' AND SCALE_x2 = '1' ) ELSE
+                       V( 9 DOWNTO 0) & H( 9 DOWNTO 4);
+-------------------------------------------------------------------------------
+TILE_ADDR    <= GRAF_ADDR WHEN GRAF = '1' ELSE Ys & Xs;
 -------------------------------------------------------------------------------
 -- MEMORY ACCESS - Font 4 bits
 -------------------------------------------------------------------------------
-PROCESS(CLK, H,         V,
+PROCESS(CLK, H,         V,         COLs, ROWs, X, Y,
              BLANK,     MFONT,     GRAF,
-             SCALE_x4,  SCALE_x2,  SCALE_x1,
              F32Pix,    F16Pix,    F08Pix, 
              F32Line,   F16Line,   F08Line, 
              FONT_4bit, FONT_2bit, FONT_1bit )
 
-variable vADDR      :  STD_LOGIC_VECTOR(15 DOWNTO 0);
-variable vFONT_ADDR :  STD_LOGIC_VECTOR(15 DOWNTO 0);
-variable vFONT      :  STD_LOGIC_VECTOR(7 DOWNTO 0);
-variable vATTRIBUTE :  STD_LOGIC_VECTOR(7 DOWNTO 0);
-variable vCOLOR     :  STD_LOGIC_VECTOR(7 DOWNTO 0);
+variable vADDR      : STD_LOGIC_VECTOR(15 DOWNTO 0);
+variable vFONT_ADDR : STD_LOGIC_VECTOR(15 DOWNTO 0);
+variable vFONT      : STD_LOGIC_VECTOR(7 DOWNTO 0);
+variable vATTRIBUTE : STD_LOGIC_VECTOR(7 DOWNTO 0);
+variable vCOLOR     : STD_LOGIC_VECTOR(7 DOWNTO 0);
 
-variable vX         :  STD_LOGIC_VECTOR(7 DOWNTO 0);
-variable vY         :  STD_LOGIC_VECTOR(6 DOWNTO 0);
-variable v_X        :  STD_LOGIC_VECTOR(6 DOWNTO 0);
-variable v_Y        :  STD_LOGIC_VECTOR(6 DOWNTO 0);
-variable vCOLS      :  STD_LOGIC_VECTOR(4 DOWNTO 0);
-variable vLINE      :  STD_LOGIC_VECTOR(4 DOWNTO 0);
+variable vLINE      : STD_LOGIC_VECTOR(4 DOWNTO 0);
+variable vCOL       : STD_LOGIC_VECTOR(4 DOWNTO 0);
 
 BEGIN
 -------------------------------------------------------------------------------
@@ -245,69 +302,11 @@ BEGIN
       DOTBLANK <= '0';
     END IF;
 
-    IF    ( SCALE_x4 = '1' ) THEN
-      vCOLS := H(6 DOWNTO 2);
-      vLINE := V(6 DOWNTO 2);
-    ELSIF ( SCALE_x2 = '1' ) THEN
-      vCOLS := H(5 DOWNTO 1);
-      vLINE := V(5 DOWNTO 1);
-    ELSE
-      vCOLS := H(4 DOWNTO 0);
-      vLINE := V(4 DOWNTO 0);
-    END IF;
-
     CASE H(2 DOWNTO 0) IS
 -------------------------------------------------------------------------------
     WHEN "000" =>
-      IF    ( GRAF = '1' AND SCALE_x4 = '1' AND FONT_4bit = '1' ) THEN
-        vADDR := "00" & V( 9 DOWNTO 2) & H( 9 DOWNTO 4);
-      ELSIF ( GRAF = '1' AND SCALE_x2 = '1' AND FONT_2bit = '1' ) THEN
-        vADDR :=  "0" & V( 9 DOWNTO 1) & H( 9 DOWNTO 4);
-      ELSIF ( GRAF = '1' AND SCALE_x1 = '1' AND FONT_1bit = '1' ) THEN
-        vADDR :=        V( 9 DOWNTO 0) & H( 9 DOWNTO 4);
-      ELSE
-        IF     ( F32Pix = '1'  AND SCALE_x4 = '1' )  THEN
-          vX := "00000" & H( 9 DOWNTO 7);
-        ELSIF (( F32Pix = '1'  AND SCALE_x2 = '1' ) OR
-               ( F16Pix = '1'  AND SCALE_x4 = '1' )) THEN
-          vX := "0000"  & H( 9 DOWNTO 6);
-        ELSIF (( F32Pix = '1'  AND SCALE_x1 = '1' ) OR
-               ( F16Pix = '1'  AND SCALE_x2 = '1' ) OR
-               ( F08Pix = '1'  AND SCALE_x4 = '1' )) THEN
-          vX := "000"   & H( 9 DOWNTO 5);
-        ELSIF (( F16Pix = '1'  AND SCALE_x1 = '1' ) OR
-               ( F08Pix = '1'  AND SCALE_x2 = '1' )) THEN
-          vX := "00"    & H( 9 DOWNTO 4);
-        ELSE
-          vX := '0'     & H( 9 DOWNTO 3);
-        END IF;
-  
-        IF     ( F32Line = '1'  AND SCALE_x4 = '1' )  THEN
-          vY := "0000" & V( 9 DOWNTO 7);
-        ELSIF (( F32Line = '1'  AND SCALE_x2 = '1' ) OR
-               ( F16Line = '1'  AND SCALE_x4 = '1' )) THEN
-          vY := "000"  & V( 9 DOWNTO 6);
-        ELSIF (( F32Line = '1'  AND SCALE_x1 = '1' ) OR
-               ( F16Line = '1'  AND SCALE_x2 = '1' ) OR
-               ( F08Line = '1'  AND SCALE_x4 = '1' )) THEN
-          vY := "00"   & V( 9 DOWNTO 5);
-        ELSIF (( F16Line = '1'  AND SCALE_x1 = '1' ) OR
-               ( F08Line = '1'  AND SCALE_x2 = '1' )) THEN
-          vY := '0'    & V( 9 DOWNTO 4);
-        ELSE
-          vY :=          V( 9 DOWNTO 3);
-        END IF;
-  
-        v_X := vX(6 DOWNTO 0);
-        v_Y := vY;
-
-        vX  := vX + HSCROLL;
-        vY  := vY + VSCROLL(6 DOWNTO 0);
-        vADDR := '0' & vY & vX;
-      END IF;
-  
-      VA <= '0' & vADDR;
-
+      VA <= '0' & TILE_ADDR;
+-------------------------------------------------------------------------------
     WHEN "001" =>
 -------------------------------------------------------------------------------
     WHEN "010" =>
@@ -316,14 +315,28 @@ BEGIN
       vFONT      := VDi( 7 DOWNTO 0);
       vATTRIBUTE := VDi(15 DOWNTO 8);
 
-      IF ( EXTATR = '1' AND vATTRIBUTE(7) = '1' ) THEN
-        vLINE := NOT(vLINE);
+      IF ( EXTATR = '1' AND vATTRIBUTE(7) = '1' ) THEN -- VFlip
+        vLINE := NOT(ROWs);
+      ELSE
+        vLINE := ROWs;
+      END IF;
+
+      IF ( EXTATR = '1' AND vATTRIBUTE(6) = '1' ) THEN -- HFlip
+        vCOL := NOT(COLs);
+      ELSE
+        vCOL := COLs;
+      END IF;
+
+      IF ( EXTATR = '1' AND vATTRIBUTE(3) = '1' ) THEN -- Animation
+        vFONT(2) := (vFONT(2) AND NOT(vFONT(0))) OR (ANIMAT(2) AND vFONT(0));
+        vFONT(1) := ANIMAT(1);
+        vFONT(0) := ANIMAT(0);
       END IF;
 
       IF ( CONTROL(6) = '1' )  THEN
         vFONT_ADDR(15 DOWNTO 8) := vFONT;
         vFONT_ADDR( 7 DOWNTO 3) := vLINE;
-        vFONT_ADDR(2)           := F32Pix AND vCOLS(4);
+        vFONT_ADDR(2)           := F32Pix AND vCOL(4);
       ELSE
         vFONT_ADDR(15)          := MFONT AND V(9);
         vFONT_ADDR(14)          := MFONT AND V(8);
@@ -335,32 +348,34 @@ BEGIN
       IF ( F08Pix = '1' )  THEN
         vFONT_ADDR(1) := EXTATRF AND vATTRIBUTE(4);
       ELSE
-        vFONT_ADDR(1) := NOT(FONT_1bit OR FONT_1bitE) AND vCOLS(3);
+        vFONT_ADDR(1) := NOT(FONT_1bit OR FONT_1bitE) AND vCOL(3);
       END IF;
 
       IF ( FONT_4bit = '1' ) THEN
-        vFONT_ADDR(0) := vCOLS(2);
+        vFONT_ADDR(0) := vCOL(2);
       ELSE
         vFONT_ADDR(0) := EXTATRF AND vATTRIBUTE(5);
       END IF;
 
       VA <= '1' & vFONT_ADDR;
+-------------------------------------------------------------------------------
     WHEN "011" =>
 -------------------------------------------------------------------------------
     WHEN "100" =>
       FONT_ROW1 <= VDi;
 
       IF ( FONT_4bit = '1' ) THEN
-        vFONT_ADDR(0) := NOT(vCOLS(2));
+        vFONT_ADDR(0) := NOT(vCOL(2));
       ELSE
         vFONT_ADDR(0) := EXTATRF AND vATTRIBUTE(5);
       END IF;
 
       IF ( FONT_2bit = '1' ) THEN
-        VA <= '0' & "1111111111" & (MFONT AND V(9)) & (MFONT AND V(8)) & vATTRIBUTE(3 DOWNTO 0);
+        VA <= '0' & "11111111111" & (MFONT AND V(9)) & (MFONT AND V(8)) & vATTRIBUTE(2 DOWNTO 0);
       ELSE
         VA <= '1' & vFONT_ADDR;
       END IF;
+-------------------------------------------------------------------------------
     WHEN "101" =>
 -------------------------------------------------------------------------------
     WHEN "110" =>
@@ -369,15 +384,15 @@ BEGIN
       VOE <= '1';
 -------------------------------------------------------------------------------
     WHEN "111" =>
-      IF ( ( VCURSOR(7 DOWNTO  0) = '1' & V_y ) AND HCURSOR(6 DOWNTO 0) = V_x ) THEN
-        CURSOR <= '1';
+      IF ( ( VCURSOR(7 DOWNTO  0) = '1' & Y(6 DOWNTO 0) ) AND HCURSOR(6 DOWNTO 0) = X(6 DOWNTO 0) ) THEN
+        CURSOR <= '1' AND FONT_1bit;
       ELSE
         CURSOR <= '0';
       END IF;
 
       DOTBLANK <= '1';
 
-      HByte <= NOT F08Pix AND (NOT(vCOLS(3)) XOR (EXTATR AND vATTRIBUTE(6)));
+      HByte <= NOT F08Pix AND (NOT(vCOL(3)) XOR (EXTATR AND vATTRIBUTE(6)));
       HFlip <= EXTATR AND vATTRIBUTE(6);
 
       VOE <= '0';
@@ -395,21 +410,21 @@ PROCESS(DOTCLK, DOTStep, DOTBLANK,
              FONT_ROW0, FONT_ROW1, FONT_ROW2,
              GRAF, FONT_2bit, FONT_1bit, FONT_1bitE)
 
-variable vCOLOR    :  STD_LOGIC_VECTOR(7 DOWNTO 0);
-variable vCOLOR0   :  STD_LOGIC_VECTOR(3 DOWNTO 0);
-variable vCOLOR1   :  STD_LOGIC_VECTOR(3 DOWNTO 0);
-variable vCOLOR2   :  STD_LOGIC_VECTOR(3 DOWNTO 0);
-variable vCOLOR3   :  STD_LOGIC_VECTOR(3 DOWNTO 0);
-variable tCOLOR    :  STD_LOGIC_VECTOR(3 DOWNTO 0);
+variable vCOLOR    : STD_LOGIC_VECTOR(7 DOWNTO 0);
+variable vCOLOR0   : STD_LOGIC_VECTOR(3 DOWNTO 0);
+variable vCOLOR1   : STD_LOGIC_VECTOR(3 DOWNTO 0);
+variable vCOLOR2   : STD_LOGIC_VECTOR(3 DOWNTO 0);
+variable vCOLOR3   : STD_LOGIC_VECTOR(3 DOWNTO 0);
+variable tCOLOR    : STD_LOGIC_VECTOR(3 DOWNTO 0);
 
-variable tCURSOR   :  STD_LOGIC;
-variable tTMP      :  STD_LOGIC;
+variable tCURSOR   : STD_LOGIC;
+variable tTMP      : STD_LOGIC;
 
-variable vFONT_ROW :  STD_LOGIC_VECTOR(15 DOWNTO 0);
+variable vFONT_ROW : STD_LOGIC_VECTOR(15 DOWNTO 0);
 
-variable vPIXEL1   :  STD_LOGIC;
-variable vPIXEL2   :  STD_LOGIC_VECTOR(1 DOWNTO 0);
-variable vPIXEL4   :  STD_LOGIC_VECTOR(3 DOWNTO 0);
+variable vPIXEL1   : STD_LOGIC;
+variable vPIXEL2   : STD_LOGIC_VECTOR(1 DOWNTO 0);
+variable vPIXEL4   : STD_LOGIC_VECTOR(3 DOWNTO 0);
 
 BEGIN
 -------------------------------------------------------------------------------
@@ -422,7 +437,7 @@ BEGIN
         IF ( FONT_1bit = '1' ) THEN
           PALETTE <= "0000";
         ELSE
-          PALETTE <= FONT_ROW0(11 DOWNTO 8);
+          PALETTE <= "00" & FONT_ROW0(9 DOWNTO 8);
         END IF;
 
         IF ( FONT_1bitE = '1' ) THEN
@@ -654,4 +669,4 @@ BEGIN
 -------------------------------------------------------------------------------
 END PROCESS;
 -------------------------------------------------------------------------------
-END bdf_type;
+END;
