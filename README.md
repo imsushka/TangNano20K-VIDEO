@@ -1,12 +1,18 @@
 Test system
 -------------------------------------------------------------------
 Z80 + AY8910x2 + SDcard + USART (115200bod) + 8MB sdram + VIDEO
+
 IO ports:
 AY8910 - 0xCA (1) / 0xCC (2) ( 0xCB/0xCD - reg addr / 0xCA/0xCC - data )
+
 SDcard - 0xE8 ( bit access )
+
 USART - 0xCE ( 0xCE - data / 0xCF - status )
+
 VGA - 0xF0 ()
+
 Mapper - 0xF8 ()
+
 
 ROM - based on retromon.asm v1.8 - a monitor for the Z80-Retro! SBC	Kenny Maytum - KRSynthWorx - April 25th, 2023
 
@@ -15,12 +21,19 @@ NASCOM ROM BASIC Ver 4.7, (C) 1978 Microsoft
 GAMES
 ----------------------------------------------------------------------
 Ladder, 
+
 RISE OUT, 
+
 XONIX, 
+
 2048 (console), 
+
 snake, 
+
 VGMPLAY, 
+
 Music from Vampir Killer MSX (on keybord 1-0)
+
 --------------------------------------------------------------------------------------------
 
 **
@@ -42,7 +55,8 @@ And the mode is 16 colors per dot.
 3 experimental graphics modes.
 1024 x 768 mono, 512 x 384 - 4 colors and 256 x 192 - 16 colors.
 
-2 layer. Sprites (not work)
+2 layers, sprites (not work normaly)
+
 --------------------------------------------------------------------------------------------------------
 
 Тайловый видео контроллер для старых процессоров, таких как Z80, 6502, 8086. 
