@@ -104,11 +104,12 @@ wire        ble ;
 wire        bhe ;
 wire [7:0]  vdatai;
 wire [15:0] vdatao;
-wire [16:0] vaddr;
-wire [16:0] vaddr1;
+wire [17:0] vaddr;
+wire [17:0] vaddr1;
+wire [15:0] mdatao;
 wire [15:0] sdatao;
 wire [15:0] fdatao;
-wire [15:0] cdatao;
+wire [15:0] spdatao;
 
 //==================================================
 // CPU tZ80
@@ -196,10 +197,12 @@ reg  IRQ7_; //= 1'b1;
 
 reg [7:0]  count_rst;
 
-wire        vgaF_wr;
+wire        vga_wrF;
 wire        vgaS_wr;
-wire        vga_wr;
+wire        vga_wrM;
+wire        vga_wrS;
 wire        o_vga;
+wire        o_vga_pal;
 wire        o_map;
 wire        i_uart;
 wire        o_uart;
@@ -215,41 +218,57 @@ wire        blank;
 wire        hact;
 wire        vact;
 wire [3:0]  color;
-wire [3:0]  scolor;
-wire [3:0]  ccolor;
-wire [3:0]  vcolor;
-reg [14:0]  rgb;
-wire [9:0]  control;
-wire [7:0]  hscroll;
-wire [7:0]  vscroll;
-wire [7:0]  hcursor;
-wire [7:0]  vcursor;
+wire [8:0]  s_color;
+wire [8:0]  m_color;
+wire [5:0]  b_color;
+wire [7:0]  sp_color;
+wire [17:0]  rgb;
+wire [31:0]  control;
+wire [7:0]  hscrollm;
+wire [6:0]  vscrollm;
+wire [7:0]  hscrolls;
+wire [6:0]  vscrolls;
+wire [7:0]  hscrollb;
+wire [6:0]  vscrollb;
+wire [6:0]  hcursor;
+wire [6:0]  vcursor;
 wire [11:0]  h;
 wire [11:0]  v;
 wire [2:0]  animat;
-wire [5:0]  split0;
-wire [6:0]  split1;
+wire [5:0]  m_split0;
+wire [6:0]  m_split1;
+wire [5:0]  s_split0;
+wire [6:0]  s_split1;
+wire [5:0]  b_split0;
+wire [6:0]  b_split1;
 
 
-wire [16:0] spr_addr;
+wire [17:0] spr_addr;
 wire [15:0] spr_data;
 wire [15:0] spr_dataF;
 wire [15:0] spr_datao;
 
-wire [10:0]  lb_ar;
-wire [10:0]  lb_aw;
-wire [3:0]  lb_di;
-wire [3:0]  lb_do;
+wire [8:0]  lb0_a;
+wire [8:0]  lb1_a;
+wire [15:0] lb0_di;
+wire [15:0] lb0_do;
+wire [15:0] lb1_di;
+wire [15:0] lb1_do;
 
-wire [4:0]   spr_ar;
-wire [4:0]   spr_aw;
-wire [63:0]  spr_di;
-wire [63:0]  spr_do;
-wire        spr_we;
-wire        spr_oe;
-wire        lb_wr;
-wire        lb_we;
-wire        lb_clr;
+wire [7:0]  oam_addr;
+wire [63:0] oam_di;
+wire [63:0] oam_do;
+wire        oam_we;
+wire        oam_oe;
+wire        oam_ble;
+wire        oam_bhe;
+
+wire        lb1_we;
+wire        lb0_we;
+wire        lb1_ble;
+wire        lb0_ble;
+wire        lb1_bhe;
+wire        lb0_bhe;
 
 //==================================================
 // 
@@ -261,10 +280,12 @@ wire IORD    = (cpu_iorq_n | cpu_rd_n);
 wire IORQ    = (cpu_iorq_n == 1'b0);
 
 wire MEMRAM  = (map_a_bus[11:10] ==  2'b10          );
+
 wire MEMVGA  = (map_a_bus[11:4]  ==  8'b11000000    );
 wire MEMVGAF = (map_a_bus[11:4]  ==  8'b11000001    );
 wire MEMVGAS = (map_a_bus[11:4]  ==  8'b11000010    );
 wire MEMVGAT = (map_a_bus[11:4]  ==  8'b11000011    );
+
 wire MEMROM8 = (map_a_bus        == 12'b111111111000);
 wire MEMROM9 = (map_a_bus        == 12'b111111111001);
 wire MEMROMA = (map_a_bus        == 12'b111111111010);
@@ -299,6 +320,7 @@ wire IOAY1   = ( IO_CC && IORQ ) ? 1'b0 : 1'b1;
 wire IOUART  = IO_CE;
 wire IOSD    = IO_E8;
 wire IOVGA   = IO_F0;
+wire IOVGA_PAL = IO_DC;
 wire IOMAP   = IO_F8;
 
 assign rst_n = ~BTN[1] & pll_lock;
@@ -315,19 +337,22 @@ begin
   end
 end
 
-assign vga_wr     = (MEMWR == 1'b0 && MEMVGA)                    ? 1'b0 : 1'b1;
-assign vgaF_wr    = (MEMWR == 1'b0 && MEMVGAF)                   ? 1'b0 : 1'b1;
+assign vga_wrM    = (MEMWR == 1'b0 && MEMVGA && map_a_bus[3] == 1'b0)                   ? 1'b0 : 1'b1;
+assign vga_wrS    = (MEMWR == 1'b0 && MEMVGA && map_a_bus[3] == 1'b1)                   ? 1'b0 : 1'b1;
+assign vga_wrF    = (MEMWR == 1'b0 && MEMVGAF)                   ? 1'b0 : 1'b1;
 assign vgaS_wr    = (MEMWR == 1'b0 && MEMVGAS)                   ? 1'b0 : 1'b1;
 assign vgaT_wr    = (MEMWR == 1'b0 && MEMVGAT)                   ? 1'b0 : 1'b1;
+
 assign sdram_wr   = (MEMWR == 1'b0 && MEMRAM)                    ? 1'b0 : 1'b1;
 assign sdram_rd   = (MEMRD == 1'b0 && MEMRAM)                    ? 1'b0 : 1'b1;
-assign sdram_rfsh = (cpu_mreq_n == 1'b0 && cpu_rfsh_n == 1'b0) ? 1'b0 : 1'b1;
+assign sdram_rfsh = (cpu_mreq_n == 1'b0 && cpu_rfsh_n == 1'b0)   ? 1'b0 : 1'b1;
 
 assign i_uart     = (IORD == 1'b0 && IOUART) ? 1'b0 : 1'b1;
 assign o_uart     = (IOWR == 1'b0 && IOUART) ? 1'b0 : 1'b1;
 assign i_sd       = (IORD == 1'b0 && IOSD)   ? 1'b0 : 1'b1;
 assign o_sd       = (IOWR == 1'b0 && IOSD)   ? 1'b0 : 1'b1;
 assign o_vga      = (IOWR == 1'b0 && IOVGA)  ? 1'b0 : 1'b1;
+assign o_vga_pal  = (IOWR == 1'b0 && IOVGA_PAL)  ? 1'b0 : 1'b1;
 //assign i_vga      = (IORD == 1'b0 && IOVGA)  ? 1'b0 : 1'b1;
 assign o_map      = (IOWR == 1'b0 && IOMAP)  ? 1'b0 : 1'b1;
 //assign i_ay0       = (IORD == 1'b0 && IOAY0)   ? 1'b0 : 1'b1;
@@ -358,29 +383,39 @@ assign cpu_di_bus = (MEMRD == 1'b0 && MEMROMF) ? romF_do_bus :
 //assign leds[5:0] = {SD_RX_data[7:6], SD_TX_data[3:0]};
 
 //==============================================================================
-vga_regs _vga_regs(
+vga_regs u_vga_regs(
 	.clk		(CLK_65MHz    ),//pixel clock
 	.RESET_n	(rst_n        ),//low active 
 
-//	.CSMEM		(vga_wr),
-	.CSREG		(o_vga),
-	.A		({ map_a_bus[3:0],cpu_a_bus[12:0] }),
+	.CS		(o_vga),
+	.A		(cpu_a_bus[2:0]),
 	.D		(cpu_do_bus),
 
 	.control	(control),
-	.hscroll	(hscroll),
-	.vscroll	(vscroll),
+	.hscrollm	(hscrollm),
+	.vscrollm	(vscrollm),
+	.hscrolls	(hscrolls),
+	.vscrolls	(vscrolls),
+	.hscrollb	(hscrollb),
+	.vscrollb	(vscrollb),
 	.hcursor	(hcursor),
 	.vcursor	(vcursor),
 
-	.split0		(split0),
-	.split1		(split1)
-//	.VA		(vaddr1),
-//	.VDo		(vdatai),
-//	.VWE		(vwe),
-//	.BLE		(ble),
-//	.BHE		(bhe)
+	.m_split0	(m_split0),
+	.m_split1	(m_split1),
+
+	.s_split0	(s_split0),
+	.s_split1	(s_split1),
+
+	.b_split0	(b_split0),
+	.b_split1	(b_split1)
+//	.MA		(vaddr1),
+//	.MDo		(vdatai),
+//	.MWE		(vwe),
+//	.MBLE		(ble),
+//	.MBHE		(bhe)
 );
+
 //==============================================================================
 synch u_synch(
 	.clk		(CLK_65MHz    ),//pixel clock
@@ -404,8 +439,12 @@ vga u_vga(
 	.RESET_n	(rst_n        ),//low active 
 
 	.control	(control),
-	.hscroll	(hscroll),
-	.vscroll	(vscroll),
+	.hscrollm	(hscrollm),
+	.vscrollm	(vscrollm),
+	.hscrolls	(hscrolls),
+	.vscrolls	(vscrolls),
+	.hscrollb	(hscrollb),
+	.vscrollb	(vscrollb),
 	.hcursor	(hcursor),
 	.vcursor	(vcursor),
 
@@ -413,87 +452,117 @@ vga u_vga(
 	.v		(v),
 
 	.animat		(animat),
-	.split0		(split0),
-	.split1		(split1),
+
+	.m_split0	(m_split0),
+	.m_split1	(m_split1),
+
+	.s_split0	(s_split0),
+	.s_split1	(s_split1),
+
+	.b_split0	(b_split0),
+	.b_split1	(b_split1),
 
 //	.hactive	(hact),
 //	.vactive	(vact),
 	.blank		(blank),
    
-	.color		(vcolor),
-//	.palette	(ccolor),
+	.m_color	(m_color),
+	.s_color	(s_color),
+	.b_color	(b_color),
 
-	.VA		(vaddr),
-	.VDi		(vdatao),
-	.VOE		(voe)
+	.MA		(vaddr),
+	.MDi		(vdatao),
+	.MSEL		(voe)
 );
-//==============================================================================
-//sprite u_sprite(
-//	.clk		(CLK_65MHz    ),//pixel clock
-//	.RESET_n	(rst_n        ),//low active 
-
-//	.h		(h),
-//	.v		(v),
-
-//	.hactive	(hact),
-//	.vactive	(vact),
- 
-//	.vsdi		(spr_di),
-//	.vsdo		(spr_do),
-//	.vsaw		(spr_aw),
-//	.vsar		(spr_ar),
-//	.vswe		(spr_we),
-
-//	.vlbdi		(lb_di),
-//	.vlbdo		(lb_do),
-//	.vlbar		(lb_ar),
-//	.vlbaw		(lb_aw),
-//	.vlbwe		(lb_we),
-//	.vlbclr		(lb_clr),
-
-//	.color		(scolor),
-
-//	.VA		(spr_addr),
-//	.VDi		(spr_datao),
-//	.VOE		(spr_oe)
-//);
-
-assign color = (scolor == 4'b0) ? vcolor : scolor;
 
 //==============================================================================
-always @(*) begin
-  case (vcolor)
-  4'b0000: rgb <= 15'b00000_00000_00000;
-  4'b0001: rgb <= 15'b00000_00000_01111;
-  4'b0010: rgb <= 15'b00000_01111_00000;
-  4'b0011: rgb <= 15'b00000_01111_01111;
-  4'b0100: rgb <= 15'b01111_00000_00000;
-  4'b0101: rgb <= 15'b01111_00000_01111;
-  4'b0110: rgb <= 15'b01111_01111_00000;
-  4'b0111: rgb <= 15'b01111_01111_01111;
-  4'b1000: rgb <= 15'b11000_11111_01000;
-  4'b1001: rgb <= 15'b00000_00000_11111;
-  4'b1010: rgb <= 15'b00000_11111_00000;
-  4'b1011: rgb <= 15'b00000_11111_11111;
-  4'b1100: rgb <= 15'b11111_00000_00000;
-  4'b1101: rgb <= 15'b11111_00000_11111;
-  4'b1110: rgb <= 15'b11111_11111_00000;
-  4'b1111: rgb <= 15'b11111_11111_11111;
-  endcase
-end
+sprite u_sprite(
+	.clk		(CLK_65MHz    ),//pixel clock
+	.RESET_n	(rst_n        ),//low active 
 
+	.h		(h),
+	.v		(v),
+
+	.hactive	(hact),
+	.vactive	(vact),
+
+	.sprite_en	(control[31]),
+
+	.oam_di		(oam_di),
+	.oam_do		(oam_do),
+	.oam_a		(oam_addr),
+	.oam_ble	(oam_ble),
+	.oam_bhe	(oam_bhe),
+	.oam_we		(oam_we),
+
+	.lb_0_di	(lb0_di),
+	.lb_0_do	(lb0_do),
+	.lb_0_a		(lb0_a),
+	.lb_0_oe	(lb0_oe),
+	.lb_0_we	(lb0_we),
+	.lb_0_ble	(lb0_ble),
+	.lb_0_bhe	(lb0_bhe),
+
+	.lb_1_di	(lb1_di),
+	.lb_1_do	(lb1_do),
+	.lb_1_a		(lb1_a),
+	.lb_1_oe	(lb1_oe),
+	.lb_1_we	(lb1_we),
+	.lb_1_ble	(lb1_ble),
+	.lb_1_bhe	(lb1_bhe),
+
+	.color		(sp_color),
+
+	.MA		(spr_addr),
+	.MDi		(spr_datao),
+	.MREQ		(spr_oe)
+);
+
+//==============================================================================
+vga_pal u_vga_pal(
+	.clk		(CLK_65MHz    ),//pixel clock
+	.RESET_n	(rst_n        ),//low active 
+
+	.CS		(o_vga_pal),
+	.A		(cpu_a_bus[1:0]),
+	.D		(cpu_do_bus),
+
+	.m_color	(m_color),
+	.s_color	(s_color),
+	.b_color	(b_color),
+
+	.sp_color	({1'b1, sp_color}),
+
+	.rgb		(rgb)
+);
+
+//==============================================================================
 assign tp0_de_in  = blank;
-assign tp0_data_r = {rgb[ 4: 0], 3'b000};
-assign tp0_data_g = {rgb[ 9: 5], 3'b000};
-assign tp0_data_b = {rgb[14:10], 3'b000};
+assign tp0_data_r = {rgb[ 5: 0], 2'b00};
+assign tp0_data_g = {rgb[11: 6], 2'b00};
+assign tp0_data_b = {rgb[17:12], 2'b00};
+
 //==============================================================================
-ram_screen u_vram(
+ram_screenM u_vramM(
     .clk		(CLK_65MHz	),//pixel clock
 
     .data_w		({ cpu_do_bus, cpu_do_bus }),
     .addr_w		({ map_a_bus[3:0], cpu_a_bus[12:1] }),
-//    .we			(1'b1),
-    .we			(vga_wr		),
+    .we			(vga_wrM	),
+    .le			( cpu_a_bus[0]	),
+    .he			(~cpu_a_bus[0]	),
+
+    .data_r		(mdatao		),
+    .addr_r		(vaddr[15:0]	)
+);
+
+//==============================================================================
+ram_screenS u_vramS(
+    .clk		(CLK_65MHz	),//pixel clock
+
+    .data_w		({ cpu_do_bus, cpu_do_bus }),
+    .addr_w		({ map_a_bus[3:0], cpu_a_bus[12:1] }),
+    .we			(vga_wrS	),
     .le			( cpu_a_bus[0]	),
     .he			(~cpu_a_bus[0]	),
 
@@ -502,13 +571,12 @@ ram_screen u_vram(
 );
 
 //==============================================================================
-ram_font u_fram(
+ram_font u_vramF(
     .clk		(CLK_65MHz	),//pixel clock
 
     .data_w		({ cpu_do_bus, cpu_do_bus }),
     .addr_w		({ map_a_bus[3:0], cpu_a_bus[12:1] }),
-//    .we			(1'b1		),
-    .we			(vgaF_wr),
+    .we			(vga_wrF),
     .le			( cpu_a_bus[0]	),
     .he			(~cpu_a_bus[0]	),
 
@@ -517,75 +585,72 @@ ram_font u_fram(
 );
 
 //==============================================================================
-ram_color u_cram(
+ram_sprite u_sram(
     .clk		(CLK_65MHz	),//pixel clock
 
     .data_w		({ cpu_do_bus, cpu_do_bus }),
     .addr_w		({ map_a_bus[3:0], cpu_a_bus[12:1] }),
-    .we			(1'b1		),
-//    .we			(vga_wr),
+    .we			(vgaS_wr),
     .le			( cpu_a_bus[0]	),
     .he			(~cpu_a_bus[0]	),
 
-    .data_r		(cdatao		),
-    .addr_r		(vaddr[15:0]	)
+    .data_r		(spr_data	),
+    .addr_r		(spr_addr[15:0]	)
 );
 
 //==============================================================================
-//ram_sprite u_sram(
-//    .clk		(CLK_65MHz	),//pixel clock
+ram_spriteF u_sfram(
+    .clk		(CLK_65MHz	),//pixel clock
 
-//    .data_w		({ cpu_do_bus, cpu_do_bus }),
-//    .addr_w		({ map_a_bus[3:0], cpu_a_bus[12:1] }),
-//    .we			(vgaS_wr),
-//    .le			( cpu_a_bus[0]	),
-//    .he			(~cpu_a_bus[0]	),
+    .data_w		({ cpu_do_bus, cpu_do_bus }),
+    .addr_w		({ map_a_bus[3:0], cpu_a_bus[12:1] }),
+    .we			(vgaT_wr),
+    .le			( cpu_a_bus[0]	),
+    .he			(~cpu_a_bus[0]	),
 
-//    .data_r		(spr_data	),
-//    .addr_r		(spr_addr	)
-//);
-
-//==============================================================================
-//ram_spriteF u_sfram(
-//    .clk		(CLK_65MHz	),//pixel clock
-
-//    .data_w		({ cpu_do_bus, cpu_do_bus }),
-//    .addr_w		({ map_a_bus[3:0], cpu_a_bus[12:1] }),
-//    .we			(vgaT_wr),
-//    .le			( cpu_a_bus[0]	),
-//    .he			(~cpu_a_bus[0]	),
-
-//    .data_r		(spr_dataF	),
-//    .addr_r		(spr_addr	)
-//);
+    .data_r		(spr_dataF	),
+    .addr_r		(spr_addr[15:0]	)
+);
 
 //==============================================================================
-//lbram u_lbram(
-//    .clk		(CLK_65MHz	),//pixel clock
+lbram u_lbram0(
+    .clk		(CLK_65MHz	),//pixel clock
+    .data_i		(lb0_do		),
+    .addr		(lb0_a		),
+    .we			(lb0_we		),
+    .ble		(lb0_ble	),
+    .bhe		(lb0_bhe	),
 
-//    .data_w		( lb_do		),
-//    .addr_w		( lb_aw		),
-//    .we			( lb_we		),
-//    .clr		( lb_clr	),
-
-//    .data_r		( lb_di		),
-//    .addr_r		( lb_ar		)
-//);
+    .data_o		(lb0_di		)
+);
 
 //==============================================================================
-//ram_oam u_oamram(
-//    .clk		(CLK_65MHz	),//pixel clock
+lbram u_lbram1(
+    .clk		(CLK_65MHz	),//pixel clock
+    .data_i		(lb1_do		),
+    .addr		(lb1_a		),
+    .we			(lb1_we		),
+    .ble		(lb1_ble	),
+    .bhe		(lb1_bhe	),
 
-//    .data_w		( spr_do	),
-//    .addr_w		( spr_aw	),
-//    .we			( spr_we	),
+    .data_o		(lb1_di		)
+);
 
-//    .data_r		( spr_di	),
-//    .addr_r		( spr_ar	)
-//);
+//==============================================================================
+ram_oam u_oamram(
+    .clk		(CLK_65MHz	),//pixel clock
 
-assign vdatao = (vaddr[16] == 1'b1) ? fdatao : (vaddr[15:8] == 8'b11111111) ? cdatao : sdatao;
-//assign spr_datao = (spr_addr[16] == 1'b1) ? spr_dataF : spr_data;
+    .data_i		(oam_do		),
+    .addr		(oam_addr	),
+    .we			(oam_we		),
+//    .ble		(oam_ble	),
+//    .bhe		(oam_bhe	),
+
+    .data_o		(oam_di		)
+);
+
+assign vdatao = (vaddr[17] == 1'b1) ? fdatao : (vaddr[15] == 1'b1) ? sdatao : mdatao;
+assign spr_datao = (spr_addr[17] == 1'b1) ? spr_dataF : spr_data;
 
 //==============================================================================
 // Zilog Z80A CPU

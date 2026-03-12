@@ -7,20 +7,20 @@ LIBRARY work;
 ENTITY SYNCH IS 
 	PORT
 	(
-		CLK     :  IN  STD_LOGIC;
-		RESET_n :  IN  STD_LOGIC;
+		CLK     :  IN STD_LOGIC;
+		RESET_n :  IN STD_LOGIC;
 
-		H       : OUT  STD_LOGIC_VECTOR(11 DOWNTO 0);
-		V       : OUT  STD_LOGIC_VECTOR(11 DOWNTO 0);
+		H       : OUT STD_LOGIC_VECTOR(11 DOWNTO 0);
+		V       : OUT STD_LOGIC_VECTOR(11 DOWNTO 0);
 
-		HACTIVE : OUT  STD_LOGIC;
-		VACTIVE : OUT  STD_LOGIC;
+		HACTIVE : OUT STD_LOGIC;
+		VACTIVE : OUT STD_LOGIC;
 
-		ANIMAT  : OUT  STD_LOGIC_VECTOR(2 DOWNTO 0);
+		ANIMAT  : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
 
-		HSYNC   : OUT  STD_LOGIC;
-		VSYNC   : OUT  STD_LOGIC;
-		BLANK   : OUT  STD_LOGIC
+		HSYNC   : OUT STD_LOGIC;
+		VSYNC   : OUT STD_LOGIC;
+		BLANK   : OUT STD_LOGIC
 	);
 END;
 
@@ -64,7 +64,7 @@ BEGIN
 -------------------------------------------------------------------------------
 -- HSync, VSync & Blank
 -------------------------------------------------------------------------------
-  IF ( vH < 1071 AND vVACTIVE = '1' ) THEN
+  IF ( vH < 1024+7 AND vVACTIVE = '1' ) THEN
     vHx  := vH;
   ELSE
     vHx  := (OTHERS => '0');
