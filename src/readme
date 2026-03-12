@@ -1,22 +1,72 @@
 Cursor only for 1 bit modes
-REG_HCURSOR (0xF2) - 0-127
-REG_VCURSOR (0xF3) - 0-127 + 0x80 (for enable cursor) 
-REG_MULTY   (0xF4) - 0x0z - color background
-                   - 0x4z - extended palette
-                   - 0x8z - split0 - zone0 end line. top screen
-                   - 0xCz - split1 - zone2 start line. bottom screen
+-------------------------------------------------------------------------------
+-- REGISTERS
+-------------------------------------------------------------------------------
+-- CONTROL  ( x7 )
+-- ( 2- 0) 000 2-0 Master video mode
+-- (    3) 000 3   Master multy font
 
-REG_HSCROLL (0xF5) - 0-255
-REG_VSCROLL (0xF6) - 0-255
-REG_CTRL0 (0xF7)
-7          - 0/1 lo/hi address
--- 0 --
- 654       - video mode
-    32     - font bits
-      10   - scale
--- 1 --
-      1    - Split mode.
-       0   - multy font
+-- ( 5- 4) 001 1-0 Master scale          (00/01 - 1x, 10 - 2x, 11 - 4x)
+-- ( 7- 6) 001 3-2 Master bits           (00 - 1bpp, 01 - 2bpp, 10 - 4bpp, 11 - 1bppE)
+--
+-- (10- 8) 010 2-0 Slave video mode
+-- (   11) 010 3   Slave multy font
+
+-- (13-12) 011 1-0 Slave scale           (00 - Slave disable, 01 - 1x, 10 - 2x, 11 - 4x)
+-- (15-14) 011 3-2 Slave bits            (00 - 1bpp, 01 - 2bpp, 10 - 4bpp, 11 - 1bppE)
+
+-- (17-16) 100 1-0 Background video mode
+-- (   19) 100 3   Background multy font
+
+-- (21-20) 101 1-0 Background scale      (00 - Background disable, 01 - 1x, 10 - 2x, 11 - 4x)
+-- (   22) 101 2   Background bits       (0  - 1bpp, 1 - 2bpp)
+-- (   23) 101 3   
+
+-- (   24) 110 0   Master cursor
+-- (   25) 110 1   
+-- (   26) 110 2   
+-- (   27) 110 3   
+--     
+-- (   28) 111 0   M_SPLIT_ENABLE
+-- (   29) 111 1   S_SPLIT_ENABLE
+-- (   30) 111 2   B_SPLIT_ENABLE
+-- (   31) 111 3   SPRITE_ENABLE
+--
+-- ???      ( x6 )
+--
+-- ???      ( x5 )
+--
+-- ???      ( x4 )
+--
+-- REG_DATA ( x3 )
+-- 0000 6-0 HCURSOR
+-- 0001 6-0 VCURSOR
+-- 0010 7-0 HSCROLLM
+-- 0011 6-0 VSCROLLM
+-- 0100 7-0 HSCROLLS
+-- 0101 6-0 VSCROLLS
+-- 0110 7-0 HSCROLLB
+-- 0111 6-0 VSCROLLB
+-- 1000 5-0 M_SPLIT0
+-- 1001 5-0 M_SPLIT1
+-- 1010 5-0 S_SPLIT0
+-- 1011 5-0 S_SPLIT1
+-- 1100 5-0 B_SPLIT0
+-- 1101 5-0 B_SPLIT1
+-- 1110
+-- 1111
+--
+-- REG_ADDR ( x2 )
+--
+-- MEM_DATA ( x1 )
+-- 7-0 DATA
+--
+-- MEM_ADDR ( x0 )
+-- 00 5-0 ADDRESS(05-00)
+-- 01 5-0 ADDRESS(11-06)
+-- 10 5-0 ADDRESS(17-12)
+-- 11 5-0 INCREMENT
+
 
 multy fonts - for mode 8 x 8, 8 x 16 and 16 x 16, enable diferent font for 1/3 lines
 ------------------------------------------
